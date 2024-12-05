@@ -1,4 +1,4 @@
-# AIRost-Intern-Project
+# AIROST-Intern-Project
 Here is the Team WeCanDo Trash Pick Up Robot
 
 # Manual Control Requirement
