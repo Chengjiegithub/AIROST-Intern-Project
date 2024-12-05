@@ -10,6 +10,9 @@ https://www.keuwl.com/apps/bluetoothelectronics/
 By using the app with bluetooth connection, we can create a control panel to control the robot.
 ![WhatsApp Image 2024-12-05 at 23 42 17_2788c704](https://github.com/user-attachments/assets/dd0e5e53-5632-4965-94a5-aea420c4680b)
 
+4 directional key could control the movement of the robot. The red button at the middle act as an emergency stop to prevent accident happen.
+For the slider at the right, each will control the 2 servo motors that use to control the robot arm.
+
 
 # Autonomous Mode 
 For the autonomous mode, it will be activated by pressing the switch on the robot to change between autonomous mode and manual mode. 
