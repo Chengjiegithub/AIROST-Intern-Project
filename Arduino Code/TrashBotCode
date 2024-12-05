@@ -1,1 +1,252 @@
+#define RECEIVE_DEMO        /* Define RECEIVE demo */
+//#define SEND_DEMO
+//#define RECEIVE_DEMO     /* Define RECEIVE demo */
+#define SEND_DEMO          /* Define SEND demo */
+#include <Servo.h>
+#include <SoftwareSerial.h>
 
+
+SoftwareSerial bluetooth(0, 1); // RX, TX pins connected to the Bluetooth module
+
+
+
+Servo servo0;
+Servo servo1;
+
+// Motor Control Pins
+const int LEFT_MOTOR = 11;
+const int LEFT_MOTOR_BACK = 10;
+const int RIGHT_MOTOR = 13;
+const int RIGHT_MOTOR_BACK = 12;
+int enr=A1; 
+int enl=A0;
+
+// Ultrasonic Sensor Pins
+const int TRIG_PIN = 4;
+const int ECHO_PIN = 5;
+float distance;
+float duration;
+float min=10.00;
+float max=17.00;
+const int MAX_DISTANCE = 50;
+
+
+
+// Mode Control Pin
+const int MODE_PIN = 3; // High = Autonomous, Low = Manual
+const int IRSensor0 = 6;
+const int IRSensor1 = 7;
+
+// Servo motor setup pin 
+const int SERVO0 = 8;
+const int SERVO1 = 9;
+int sliderValue;
+int value;
+
+void setup() {
+  
+  bluetooth.begin(9600); // Bluetooth module at 9600 baud rate
+  
+  servo0.attach(SERVO0);
+  servo1.attach(SERVO1);
+  
+  // Initialize motor pins
+  pinMode(LEFT_MOTOR, OUTPUT);
+  pinMode(RIGHT_MOTOR, OUTPUT);
+  pinMode(LEFT_MOTOR_BACK, OUTPUT);
+  pinMode(RIGHT_MOTOR_BACK, OUTPUT);
+  
+  // Initialize mode pin
+  pinMode(MODE_PIN, INPUT);
+  
+ pinMode(TRIG_PIN, OUTPUT);
+pinMode(ECHO_PIN, INPUT);
+
+
+
+  //IR sensor
+  pinMode(IRSensor0, INPUT);
+  pinMode(IRSensor1, INPUT); // IR Sensor pin INPUT
+
+  // Stop motors at startup
+  digitalWrite(LEFT_MOTOR, 0);
+  digitalWrite(RIGHT_MOTOR, 0);
+  servo0.write(0);
+  servo1.write(0);
+
+  Serial.begin(9600);  
+}
+
+void loop() {
+  if (digitalRead(MODE_PIN) == HIGH) {
+    autonomousMode(); // Run autonomous mode
+    Serial.print("auto");
+   
+  } else {
+    manualControl(); // Run manual mode
+    Serial.print("manual");
+    
+  }
+}
+
+void manualControl() {
+  if (bluetooth.available()) {
+    String command = bluetooth.readStringUntil('\n'); // Read command from Bluetooth
+    handleManualCommand(command);
+  }
+}
+
+void handleManualCommand(String command) {
+  char cmdType = command.charAt(0); // First character: Identifies the command type
+  if (cmdType == 'A' || cmdType == 'B') {
+    int value = command.substring(1, command.length() - 1).toInt();
+    if (cmdType == 'A') {
+      servo0.write(value);
+    } else if (cmdType == 'B') {
+      servo1.write(value);
+    }
+  } else {
+    switch (cmdType) {
+      case 'F': moveForward(); break;
+      case 'B': moveBackward(); break;
+      case 'L': turnLeft(); break;
+      case 'R': turnRight(); break;
+      case 'S': stopMotors(); break;
+      case 'f':
+      case 'b':
+      case 'l':
+      case 'r':
+      case 's': stopMotors(); break; // Ensure motors stop on button release
+    }
+  }
+}
+
+void moveForward() {
+  digitalWrite(LEFT_MOTOR, HIGH);
+  digitalWrite(RIGHT_MOTOR, HIGH);
+  analogWrite (enr,180);
+  analogWrite (enl,180);
+}
+
+void moveBackward() {
+  digitalWrite(LEFT_MOTOR_BACK, HIGH);
+  digitalWrite(RIGHT_MOTOR_BACK, HIGH);
+  analogWrite (enr,180);
+  analogWrite (enl,180);
+}
+
+void turnLeft() {
+  digitalWrite(LEFT_MOTOR, LOW);
+  digitalWrite(RIGHT_MOTOR, HIGH);
+  analogWrite (enr,180);
+}
+
+void turnRight() {
+  digitalWrite(LEFT_MOTOR, HIGH);
+  digitalWrite(RIGHT_MOTOR, LOW);
+  analogWrite (enl,180);
+}
+
+void stopMotors() {
+  digitalWrite(LEFT_MOTOR, LOW);
+  digitalWrite(RIGHT_MOTOR, LOW);
+  digitalWrite(LEFT_MOTOR_BACK, LOW);
+  digitalWrite(RIGHT_MOTOR_BACK, LOW);
+}
+
+
+//Autonomous Mode Function
+void autonomousMode() {
+
+ delay(50);  
+   digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH);
+  distance = (duration*.0343)/2;
+  Serial.print("Distance: ");
+  Serial.println(distance);
+  delay(100);
+
+  int motion0 = digitalRead(IRSensor0);
+  int motion1 = digitalRead(IRSensor1);
+  
+  if (distance > MAX_DISTANCE) {
+    moveRobot(motion0, motion1);
+   }else {
+    if (distance > min && distance> max) {
+      moveForward();
+      Serial.println("Minor Forward");
+    } else if (distance < min && distance <max) {
+      moveBackward();
+      Serial.println("Minor Backward");
+    } else if(distance>min && distance< max ){
+      stopMotors();
+      delay(500);
+      moveServo();
+    }
+  }
+} 
+
+int moveRobot(int motion0, int motion1) {
+  if(motion0 ==  0 && motion1 == 0 ) {
+    moveForward();
+    Serial.println("Forward");
+  }
+  else if(motion0 == 1 && motion1==0 ) {
+   turnLeft();
+   Serial.println("LEFT");
+  }
+  else if(motion0 == 0 && motion1 == 1){
+    turnRight();
+    Serial.println("RIGHT");
+  }
+  else {
+    stopMotors();
+  }
+    
+}
+
+int moveServo() {
+    int pos;
+    int pos1;
+
+    // Moving servo0 from 90 to 160 degrees
+    for (pos = 0; pos <= 70; pos++) {
+        servo0.write(pos);
+        Serial.print("claw close");
+        delay(1000); // Delay to observe the movement
+        break;
+        
+    }
+
+    // Moving servo1 from 0 to 90 degrees
+    for (pos1 = 0; pos1 <= 120; pos1++) {
+        servo1.write(pos1);
+        Serial.print("arm up");
+        delay(1000); // Delay to observe the movement
+        break;
+        
+    }
+
+    // Moving servo0 back from 160 to 90 degrees
+    for (pos = 70; pos >= 0; pos--) {
+        servo0.write(pos);
+        Serial.print("claw open");
+        delay(1000); // Delay to observe the movement
+        break;
+    }
+
+    // Moving servo1 back from 135 to 0 degrees
+    for (pos1 = 120; pos1 >= 0; pos1--) {
+        servo1.write(pos1);
+        Serial.print("arm down");
+        delay(1000); // Delay to observe the movement
+        break;
+    }
+
+    return 0; // Indicating successful completion of the function
+}
